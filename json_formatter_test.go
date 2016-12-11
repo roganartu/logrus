@@ -118,3 +118,50 @@ func TestJSONEntryEndsWithNewline(t *testing.T) {
 		t.Fatal("Expected JSON log entry to end with a newline")
 	}
 }
+
+func TestHTMLEscapingCanBeDisabled(t *testing.T) {
+	formatter := &JSONFormatter{
+		HTMLEscapingDisabled: true,
+	}
+
+	b, err := formatter.Format(WithField("level", "something with normally escaped characters > < &"))
+	if err != nil {
+		t.Fatal("Unable to format entry: ", err)
+	}
+
+	// Can't test using json.Unmarshal because it unescapes them
+	found := map[string]bool{
+		">": false,
+		"<": false,
+		"&": false,
+	}
+	for _, c := range b {
+		for k, _ := range found {
+			if c == []byte(k)[0] {
+				found[k] = true
+				break
+			}
+		}
+	}
+
+	for k, v := range found {
+		if !v {
+			t.Fatalf("Expected %s to not be escaped", k)
+		}
+	}
+}
+
+func TestHTMLEscapingIsEnabledByDefault(t *testing.T) {
+	formatter := &JSONFormatter{}
+
+	b, err := formatter.Format(WithField("level", "something with normally escaped characters > < &"))
+	if err != nil {
+		t.Fatal("Unable to format entry: ", err)
+	}
+
+	for _, c := range b {
+		if c == byte('>') || c == byte('<') || c == byte('&') {
+			t.Fatal("HTML characters not escaped by default")
+		}
+	}
+}

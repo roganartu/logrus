@@ -1,6 +1,7 @@
 package logrus
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -8,6 +9,9 @@ import (
 type JSONFormatter struct {
 	// TimestampFormat sets the format used for marshaling timestamps.
 	TimestampFormat string
+
+	// HTMLEscapingDisabled sets whether >, < and & inside JSON stings should be escaped.
+	HTMLEscapingDisabled bool
 }
 
 func (f *JSONFormatter) Format(entry *Entry) ([]byte, error) {
@@ -37,5 +41,12 @@ func (f *JSONFormatter) Format(entry *Entry) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to marshal fields to JSON, %v", err)
 	}
+
+	if f.HTMLEscapingDisabled {
+		serialized = bytes.Replace(serialized, []byte("\\u003c"), []byte("<"), -1)
+		serialized = bytes.Replace(serialized, []byte("\\u003e"), []byte(">"), -1)
+		serialized = bytes.Replace(serialized, []byte("\\u0026"), []byte("&"), -1)
+	}
+
 	return append(serialized, '\n'), nil
 }
